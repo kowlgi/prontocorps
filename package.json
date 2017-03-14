@@ -21,6 +21,7 @@
     "botkit-sms": "^1.1.0",
     "compression": "^1.6.2",
     "express": "^4.15.2",
+    "hyperwallet-sdk": "^0.1.1",
     "jade": "^1.11.0",
     "mongoose": "^4.9.0",
     "path": "^0.12.7"
