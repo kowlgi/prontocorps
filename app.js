@@ -128,7 +128,6 @@ controller.hears('.*', 'message_received', (bot, message) => {
         var partingSuccessMessage = function(err, convo) {
             convo.say(`Thank you very much, ${convo.extractResponse(firstNameKey)}, your Pronto account is ready. We will allocate funds to your account immediately.`);
             convo.next()
-            createPayment("56.19");
         }
 
         var partingErrorMessage = function(err, convo) {
@@ -142,13 +141,6 @@ controller.hears('.*', 'message_received', (bot, message) => {
 
     var twilio = require('twilio');
     var client = new twilio.RestClient(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-
-    // client.messages.create({
-    //     body: 'Hello from Node',
-    //     to: '+15127099445',  // Text this number
-    //     from: process.env.TWILIO_NUMBER // From a valid Twilio number
-    // }, function(err, message) {
-    // });
 
     var createPayment = function(amountPayable) {
         const rand = Math.floor(Math.random() * (1000000000 - 1)) + 1;
@@ -167,10 +159,40 @@ controller.hears('.*', 'message_received', (bot, message) => {
                     to: currentUserPhoneNumber,  // Text this number
                     from: process.env.TWILIO_NUMBER // From a valid Twilio number
                 }, function(err, message) {
-                    console.log(err);
                 });
             } else {
                 // do nothing
             }
         }));
     }
+    
+    // set up webpage for making payments
+    const jade = require('jade')
+    const express = require('express')
+    const compression = require('compression')
+    const bodyParser = require('body-parser')
+    const app = express()
+    const path = require('path')
+
+    app.use(bodyParser.json());
+    app.use(bodyParser.urlencoded({ extended: false }));
+    app.set('port', 3005)
+    app.set('views', path.join(__dirname, 'views'))
+    app.set('view engine', 'jade')
+
+    const Router = express.Router();
+    Router.get('/', function(req, res, next) {
+        res.render('pay.jade')
+    });
+
+    Router.post('/create-payment', function(req, res, next) {
+        createPayment(req.body.paymentAmount);
+        res.redirect('/')
+    });
+    app.use('/', Router);
+
+    http = require('http')
+    // Start server
+    http.createServer(app).listen(app.get('port'), function() {
+        console.log('Express listening on port ' + app.get('port'));
+    });
