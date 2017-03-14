@@ -1,0 +1,19 @@
+{
+  "name": "prontocorps",
+  "version": "1.0.0",
+  "description": "Helping disaster victims quickly rebuild their lives.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rocketsummer/prontocorps.git"
+  },
+  "author": "Sunil Kowlgi",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rocketsummer/prontocorps/issues"
+  },
+  "homepage": "https://github.com/rocketsummer/prontocorps#readme"
+}
