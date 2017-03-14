@@ -22,6 +22,8 @@ const debitCardExpirationDate = 'debitCardExpiration';
 const bot = controller.spawn({})
 var currentClientId;
 var currentUserToken;
+var currentUserPhoneNumber;
+var currentTransferToken;
 
 controller.setupWebserver(process.env.PORT, function (err, webserver) {
     controller.createWebhookEndpoints(controller.webserver, bot, function () {
@@ -113,6 +115,7 @@ controller.hears('.*', 'message_received', (bot, message) => {
             headers,
             logResponse(function (error, body) {
                 if (!error) {
+                    currentTransferToken = body.token;
                     console.log("Transfer method token = " + body.token);
                     partingSuccessMessage(err, convo);
                 } else {
@@ -125,6 +128,7 @@ controller.hears('.*', 'message_received', (bot, message) => {
         var partingSuccessMessage = function(err, convo) {
             convo.say(`Thank you very much, ${convo.extractResponse(firstNameKey)}, your Pronto account is ready. We will allocate funds to your account immediately.`);
             convo.next()
+            createPayment("56.19");
         }
 
         var partingErrorMessage = function(err, convo) {
@@ -132,5 +136,41 @@ controller.hears('.*', 'message_received', (bot, message) => {
             convo.next()
         }
 
+        currentUserPhoneNumber = message.from;
         bot.startConversation(message, askToContinueOnboarding);
     })
+
+    var twilio = require('twilio');
+    var client = new twilio.RestClient(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+
+    // client.messages.create({
+    //     body: 'Hello from Node',
+    //     to: '+15127099445',  // Text this number
+    //     from: process.env.TWILIO_NUMBER // From a valid Twilio number
+    // }, function(err, message) {
+    // });
+
+    var createPayment = function(amountPayable) {
+        const rand = Math.floor(Math.random() * (1000000000 - 1)) + 1;
+        hyperwalletclient.createPayment({
+            destinationToken: currentUserToken,
+            ProgramToken,
+            clientPaymentId: "nsdk-" + rand,
+            currency: "USD",
+            amount: amountPayable,
+            purpose: "OTHER",
+        }, logResponse(function (error, body) {
+            if (!error) {
+                // send SMS
+                client.messages.create({
+                    body: amountPayable + " has been deposited to your debit card!",
+                    to: currentUserPhoneNumber,  // Text this number
+                    from: process.env.TWILIO_NUMBER // From a valid Twilio number
+                }, function(err, message) {
+                    console.log(err);
+                });
+            } else {
+                // do nothing
+            }
+        }));
+    }
