@@ -10,7 +10,8 @@ const Hyperwallet = require('hyperwallet-sdk')
 var hyperwalletclient = new Hyperwallet({
     username: "restapiuser@6626871617",
     password: "Pongy2008!",
-    programToken: ProgramToken
+    programToken: ProgramToken,
+    server: "https://api.sandbox.hyperwallet.com",
 });
 
 const firstNameKey = 'firstName';
@@ -19,8 +20,8 @@ const debitCardNumber = 'debitCardNumber';
 const debitCardExpirationDate = 'debitCardExpiration';
 
 const bot = controller.spawn({})
-const currentClientId;
-const clientIdLookup = {}
+var currentClientId;
+var currentUserToken;
 
 controller.setupWebserver(process.env.PORT, function (err, webserver) {
     controller.createWebhookEndpoints(controller.webserver, bot, function () {
@@ -57,18 +58,19 @@ controller.hears('.*', 'message_received', (bot, message) => {
     var askLastName = function(err, convo) {
         convo.ask('What is your last name?', function(response, convo) {
             createUser(err, convo)
+            askDebitCardNumber(err, convo)
             convo.next()
         }, {key: lastNameKey});
     }
 
     var createUser = function(err, convo) {
-        const currentClientId = Math.floor(Math.random() * (1000000000 - 1)) + 1;
+        const rand = Math.floor(Math.random() * (1000000000 - 1)) + 1;
         hyperwalletclient.createUser({
-            clientUserId: currentClientId,
+            clientUserId: rand,
             profileType: "INDIVIDUAL",
             firstName: convo.extractResponse(firstNameKey),
             lastName: convo.extractResponse(lastNameKey),
-            email: "testmail-" + currentClientId + "@hyperwallet.com",
+            email: "testmail-" + rand + "@hyperwallet.com",
             addressLine1: "123 Main Street",
             city: "Austin",
             stateProvince: "TX",
@@ -77,9 +79,9 @@ controller.hears('.*', 'message_received', (bot, message) => {
             ProgramToken,
         }, logResponse(function (error, body) {
             if (!error) {
-                clientIdLookup[currentClientId] = body.token;
-                askDebitCardNumber({}, convo);
-                convo.next();
+                currentClientId = rand
+                currentUserToken = body.token;
+                console.log("userToken: " + currentUserToken)
             }
         }));
     }
@@ -94,24 +96,41 @@ controller.hears('.*', 'message_received', (bot, message) => {
     var askDebitCardExpirationDate = function(err, convo) {
         convo.ask('What is your debit card expiration date?', function(response, convo) {
             setTransferMethod(err, convo);
-            convo.next()
         }, {key: debitCardExpirationDate});
     }
 
     var setTransferMethod = function(err, convo) {
-        const rand = Math.floor(Math.random() * (1000000000 - 1)) + 1;
-        hyperwalletclient.createBankAccount(clientIdLookup[currentClientId] /* usertoken */, {
-            transferMethodCountry: "US",
-            transferMethodCurrency: "USD",
-            type: "BANK_ACCOUNT",
-            branchId: "121122676",
-            bankAccountPurpose: "CHECKING",
-            bankAccountId: convo.extractResponse(debitCardNumber),
-        }, logResponse(function (error, body) {
-            if (!error) {
-                console.log("Transfer method token = " + body.token);
-            }
-        }));
-    }
-    bot.startConversation(message, askToContinueOnboarding);
-})
+        const headers = {};
+        hyperwalletclient.client.doPost(
+            `users/${encodeURIComponent(currentUserToken)}/transfer-methods`,
+            {
+                transferMethodCountry: "US",
+                transferMethodCurrency: "USD",
+                type: "BANK_CARD",
+                cardNumber: convo.extractResponse(debitCardNumber),
+                dateOfExpiry: convo.extractResponse(debitCardExpirationDate)
+            },
+            headers,
+            logResponse(function (error, body) {
+                if (!error) {
+                    console.log("Transfer method token = " + body.token);
+                    partingSuccessMessage(err, convo);
+                } else {
+                    partingErrorMessage(err, convo);
+                }
+                convo.next()
+            }));
+        }
+
+        var partingSuccessMessage = function(err, convo) {
+            convo.say('You are done. Thanks for your patience. We will get in touch with you shortly.');
+            convo.next()
+        }
+
+        var partingErrorMessage = function(err, convo) {
+            convo.say('Sorry there was an error during registration. Please try again.');
+            convo.next()
+        }
+
+        bot.startConversation(message, askToContinueOnboarding);
+    })
