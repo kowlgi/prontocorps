@@ -15,5 +15,13 @@
   "bugs": {
     "url": "https://github.com/rocketsummer/prontocorps/issues"
   },
-  "homepage": "https://github.com/rocketsummer/prontocorps#readme"
+  "homepage": "https://github.com/rocketsummer/prontocorps#readme",
+  "dependencies": {
+    "body-parser": "^1.17.1",
+    "compression": "^1.6.2",
+    "express": "^4.15.2",
+    "jade": "^1.11.0",
+    "mongoose": "^4.9.0",
+    "path": "^0.12.7"
+  }
 }
