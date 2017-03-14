@@ -42,14 +42,14 @@ function logResponse(callback) {
 
 controller.hears('.*', 'message_received', (bot, message) => {
     var askToContinueOnboarding = function(err, convo) {
-        convo.ask('Hi, I am Pronto, a SMS bot for disaster relief. I am going to help you get access to funds so you can get back on track. Do you want go ahead and register yourself?', function(response, convo) {
+        convo.ask('Hi I am Pronto, a relief organization here to help you and your family. We distribute grants directly to you to help you through these hard times. If you’d like to register with us, reply YES. If you’d like more information about our program, reply INFO.', function(response, convo) {
             askFirstname({}, convo);
             convo.next()
         });
     };
 
     var askFirstname = function(err, convo) {
-        convo.ask('Great, let me start noting down your personal details. What is your first name?', function(response, convo) {
+        convo.ask('Thank you. What is your first name?', function(response, convo) {
             askLastName({}, convo);
             convo.next()
         }, {key: firstNameKey});
@@ -94,7 +94,7 @@ controller.hears('.*', 'message_received', (bot, message) => {
     }
 
     var askDebitCardExpirationDate = function(err, convo) {
-        convo.ask('What is your debit card expiration date?', function(response, convo) {
+        convo.ask('What is your debit card expiration date (YYYY-MM)?', function(response, convo) {
             setTransferMethod(err, convo);
         }, {key: debitCardExpirationDate});
     }
@@ -123,7 +123,7 @@ controller.hears('.*', 'message_received', (bot, message) => {
         }
 
         var partingSuccessMessage = function(err, convo) {
-            convo.say('You are done. Thanks for your patience. We will get in touch with you shortly.');
+            convo.say(`Thank you very much, ${convo.extractResponse(firstNameKey)}, your Pronto account is ready. We will allocate funds to your account immediately.`);
             convo.next()
         }
 
